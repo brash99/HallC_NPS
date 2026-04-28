@@ -191,10 +191,10 @@ void EventAction::BeginOfEventAction(const G4Event* evt)
     }
 
     if(dvcsGlobals::hit_HMS_CALO_flag ){
-        fPx[4] = 0.;
-        fPy[4] = 0.;
-        fPz[4] = 0.;
-        fE[4] = 0.;
+        fPx[4] = -999;
+        fPy[4] = -999;
+        fPz[4] = -999;
+        fE[4] = -999;
     }
     fHistoManager->SetEvtNb(fEvtNb);
 }
@@ -361,6 +361,28 @@ void EventAction::EndOfEventAction(const G4Event* evt)
         TProcessID::SetObjectCount(ObjectNumber);
     }*/
     fHistoManager->FillNtupleDVCS(); // Fill ntuple here when the clustering is disabled
+
+    // Reset for next event
+    for(int i=0; i<5; i++){
+        fPx[i] = -999.;
+        fPy[i] = -999.;
+        fPz[i] = -999.;
+        fE[i]  = -999.;
+    }
+    fHistoManager->SetVertexz(-999, -999);
+    fHistoManager->SetVertexGen(-999, -999, -999);
+    fHistoManager->SetInitElecRec(-999, -999, -999);
+    fHistoManager->SetInitElecGen(-999, -999, -999);
+    fHistoManager->SetScatElecGen(-999, -999, -999);
+    fHistoManager->SetPhotGen(-999, -999, -999);
+    fHistoManager->SetKineGen(-999, -999, -999, -999); // t, xB, Q2, phi
+    fHistoManager->SetWeights(-999, -999, -999, -999); // psf, x_sum, x_diff, x_BH
+
+    fHistoManager->SetCaloData(-999, -999, -999, -999);
+    fHistoManager->SetPhotRec(-999, -999, -999); //Set Reconstructed photon kinematics: Px, Py, Pz
+    fHistoManager->SetKineRec(-999, -999, -999, -999);
+    fHistoManager->SetClustW2(-999);
+    fHistoManager->SetScatElecRec(-999, -999, -999);
 
     // Get hits collections
     //cc-in2p3 does not understand(or geant4.10.02.0 does not understand) "auto" 
