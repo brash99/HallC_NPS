@@ -437,8 +437,8 @@ void EventAction::DefinePrimaries(TLorentzVector* L_elec_init, TLorentzVector* L
     G4double beam_py = 0.;
     G4double beam_pz = Ebeam;
 
-    fHistoManager->SetInitElecGen(beam_px, beam_py, beam_pz);
-    fHistoManager->SetInitElecRec(fPx[0], fPy[0], fPz[0]);
+    fHistoManager->SetInitElecRec(beam_px, beam_py, beam_pz);
+    fHistoManager->SetInitElecGen(fPx[0], fPy[0], fPz[0]);
     fHistoManager->SetScatElecGen(fPx[1], fPy[1], fPz[1]);
     fHistoManager->SetPhotGen1(fPx[2], fPy[2], fPz[2]);
     fHistoManager->SetPhotGen2(fPx[3], fPy[3], fPz[3]);
