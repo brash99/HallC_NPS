@@ -72,6 +72,7 @@
 #include "G4IonBinaryCascadePhysics.hh"
 #include "G4IonPhysics.hh"
 #include "G4EmExtraPhysics.hh"
+#include "G4GenericBiasingPhysics.hh"
 #include "G4EmParameters.hh"
 
 #include "G4HadronPhysicsFTFP_BERT.hh"
@@ -97,6 +98,7 @@
 #include "G4SystemOfUnits.hh"
 
 #include "StepMax.hh"
+#include "dvcsGlobals.hh"
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo.....
 
 PhysicsList::PhysicsList() : G4VModularPhysicsList(),
@@ -166,6 +168,7 @@ void PhysicsList::ConstructProcess()
   for(size_t i=0; i<fHadronPhys.size(); i++) {
     fHadronPhys[i]->ConstructProcess();
   }
+
   AddStepMax();
 }
 
@@ -249,6 +252,14 @@ void PhysicsList::AddPhysicsList(const G4String& name)
     AddPhysicsList("emstandard_opt0");
     SetBuilderList2();
     fHadronPhys.push_back( new G4HadronInelasticQBBC(verboseLevel));
+    if (dvcsGlobals::primary_mode == 3) {
+      G4GenericBiasingPhysics* biasing = new G4GenericBiasingPhysics();
+      biasing->Bias("e-", std::vector<G4String>(1, "electronNuclear"));
+      // It must be constructed after the wrapped QBBC processes.
+      fHadronPhys.push_back(biasing);
+      G4cout << "BEAM_BIAS wrapping primary-electron electronNuclear process "
+             << "for target-only force collision" << G4endl;
+    }
 
   } else if (name == "QGSP_BERT") {
 

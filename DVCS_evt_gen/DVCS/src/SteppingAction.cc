@@ -42,6 +42,10 @@
 
 #include "G4TouchableHistory.hh"
 #include "HistoManager.hh"
+#include "dvcsGlobals.hh"
+#include "G4VProcess.hh"
+
+#include <vector>
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
@@ -65,6 +69,20 @@ SteppingAction::~SteppingAction()
 
 void SteppingAction::UserSteppingAction(const G4Step* aStep)
 {
+  G4Track* track = aStep->GetTrack();
+
+  // NPS trigger studies concern prompt particles reaching a calorimeter only
+  // 3.57 m from the target.  Charged hadronic secondaries can otherwise curl
+  // indefinitely in the sweeper field or become trapped at passive-geometry
+  // boundaries.  These limits are deliberately far outside the prompt flight
+  // envelope, but prevent non-contributing tracks from exhausting memory.
+  if (track->GetGlobalTime() > 100.*CLHEP::ns ||
+      track->GetTrackLength() > 20.*CLHEP::m ||
+      track->GetCurrentStepNumber() > 100000) {
+    track->SetTrackStatus(fStopAndKill);
+    return;
+  }
+
   // get volume of the current step
   G4VPhysicalVolume* volume_pre 
     = aStep->GetPreStepPoint()->GetTouchableHandle()->GetVolume();
@@ -72,7 +90,50 @@ void SteppingAction::UserSteppingAction(const G4Step* aStep)
   G4VPhysicalVolume* volume_post
     = aStep->GetPostStepPoint()->GetTouchableHandle()->GetVolume();
 
-  G4Track* track = aStep->GetTrack();
+  if (dvcsGlobals::primary_mode == 3) {
+    const G4VProcess* process =
+      aStep->GetPostStepPoint()->GetProcessDefinedStep();
+    if (process && (process->GetProcessName() == "electronNuclear" ||
+                    process->GetProcessName() == "photonNuclear")) {
+      const std::vector<const G4Track*>* secondaries =
+        aStep->GetSecondaryInCurrentStep();
+      G4cout << "BEAM_INTERACTION event=" << fEventAction->GetEventNb()
+             << " process=" << process->GetProcessName()
+             << " parent_pid=" << track->GetParticleDefinition()->GetPDGEncoding()
+             << " parent_weight=" << track->GetWeight()
+             << " parent_E_GeV=" << track->GetTotalEnergy()/CLHEP::GeV
+             << " z_cm=" << track->GetPosition().z()/CLHEP::cm
+             << " nsecondary=" << secondaries->size();
+      for (std::size_t i = 0; i < secondaries->size(); ++i) {
+        const G4Track* secondary = (*secondaries)[i];
+        G4cout << " secondary" << i << "_pid="
+               << secondary->GetParticleDefinition()->GetPDGEncoding()
+               << " secondary" << i << "_weight=" << secondary->GetWeight()
+               << " secondary" << i << "_E_GeV="
+               << secondary->GetTotalEnergy()/CLHEP::GeV;
+      }
+      G4cout << G4endl;
+    }
+  }
+
+  // Record the first active PbWO4 crystal reached by the primary electron.
+  // This separates an upstream/front-wrapper loss or miss from shower leakage.
+  if (track->GetTrackID() == 1
+      && track->GetDynamicParticle()->GetParticleDefinition()->GetPDGEncoding() == 11
+      && volume_pre->GetLogicalVolume()->GetName() == "Crystal_log"
+      && aStep->GetPreStepPoint()->GetStepStatus() == fGeomBoundary) {
+    G4TouchableHistory* touchable =
+      (G4TouchableHistory*)(aStep->GetPreStepPoint()->GetTouchable());
+    G4VPhysicalVolume* cellPhysical = touchable->GetVolume(2);
+    G4VPhysicalVolume* columnPhysical = touchable->GetVolume(1);
+    G4int rowNo = cellPhysical->GetCopyNo();
+    G4int columnNo = columnPhysical->GetCopyNo();
+    G4int hitID = columnNo + 36*rowNo;
+    fHistoManager->SetNPSEntry(hitID,
+                               track->GetTotalEnergy()/CLHEP::GeV,
+                               track->GetPosition()/CLHEP::mm,
+                               track->GetMomentum()/CLHEP::GeV);
+  }
 
   /*if(
      volume_pre->GetLogicalVolume()->GetName() == "HMS_opening_log"

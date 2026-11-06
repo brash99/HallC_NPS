@@ -1,0 +1,53 @@
+# Build products
+build/
+build_*/
+**/build/
+**/build_*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.o
+*.so
+*.d
+*.pcm
+
+# Python products
+__pycache__/
+*.py[cod]
+
+# Simulation and batch products
+*.root
+*.log
+*.out
+*.err
+slurm-*.out
+core
+core.*
+
+# Farm executables written with numeric run/job names
+/[0-9]*
+
+# Local source snapshots and editor backups
+*.orig
+*.bak
+*.pre_*
+*~
+
+# Large generated phase-space and detector-response tables
+/target_phase_space/*chunk*.csv
+/target_phase_space/*manifest*.csv
+/target_phase_space/*_selected.csv
+/target_phase_space/*_nps_response.csv
+/target_phase_space/*_beam_on.mac
+/target_phase_space/*_thresholds.csv
+/target_phase_space/*.thresholds.csv
+/target_phase_space/*_face_rates.csv
+/target_phase_space/*.patch
+/target_phase_space/run6887_wiser_pi0_target_exit_cut1.csv
+
+# Event-level validation tables; compact summaries may be force-added
+/validation/*.hybrid.csv
+/validation/*_events.csv
+/validation/*_response.csv
+/validation/*.truth.csv

@@ -257,7 +257,9 @@ void EventAction::EndOfEventAction(const G4Event* evt)
         G4int PID = hit->GetPID();
         // SetEnrgyandPID must be done for all 1080 crystals.
         // If not, the edep from last events with edep>0 will be stored again. 
-        fHadCalEdep[i] = eDep*1.04;//Compensate lost 4% of the total energy of the shower at the end of the crystal.
+        // Store the raw GEANT4 energy deposition. Empirical leakage or energy-
+        // scale corrections belong in the separately validated response stage.
+        fHadCalEdep[i] = eDep;
         fPID[i] = PID;
 
         CrystalCoverHit* CChit = (*CrystCoverHC)[i];

@@ -1,0 +1,43 @@
+{
+  "input": "run6887_xsbias3e5_1000000_cut1.0.root",
+  "completed_incident_electrons": 1000000,
+  "beam_total_energy_GeV": 8.456,
+  "production_cut_GeV": 1.0,
+  "normalization_mode": "weighted_electronuclear_per_incident_electron",
+  "nps_angle_deg": 16.57,
+  "nps_distance_m": 3.57,
+  "nps_width_cm": 61.5,
+  "nps_height_cm": 73.8,
+  "current_uA": 29.417,
+  "phase_space_rows": 1614428,
+  "forward_plane_intersections": 588924,
+  "face_particle_hits": 22053,
+  "face_event_hits": 21682,
+  "face_particle_rate_Hz": 18753029.035368565,
+  "face_event_rate_Hz": 18444830.280050937,
+  "face_event_rate_stat_unc_Hz": 327835.37221320416,
+  "face_event_effective_events": 3165.4663837745147,
+  "pdg_face_counts": {
+    "-321": 44,
+    "-211": 3984,
+    "-14": 1,
+    "-13": 2,
+    "-11": 20,
+    "11": 26,
+    "13": 1,
+    "22": 5247,
+    "130": 71,
+    "211": 5152,
+    "310": 62,
+    "321": 131,
+    "2112": 2159,
+    "2212": 5148,
+    "3122": 4,
+    "1000010020": 1
+  },
+  "coordinate_convention": {
+    "nps_x": "Hall horizontal scattering plane; positive toward larger polar angle",
+    "nps_y": "Hall vertical coordinate, using Hall +x (downward)"
+  },
+  "important_limitation": "Geometric incident-energy projection; not calorimeter deposited energy or trigger response."
+}

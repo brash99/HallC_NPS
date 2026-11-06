@@ -51,6 +51,7 @@
 #include "TCaloEvent.h"
 
 #include <ctime>//for cout time
+#include <cstdlib>
 
 // #ifdef G4VIS_USE
 // #include "G4VisExecutive.hh"
@@ -79,6 +80,18 @@ double dvcsGlobals::target_offset = 0;
 double dvcsGlobals::target_length = 0;
 bool dvcsGlobals::hit_HMS_CALO_flag = false;
 
+int    dvcsGlobals::primary_mode = 0;
+double dvcsGlobals::mono_energy = 0.;
+double dvcsGlobals::mono_angle = 0.;
+double dvcsGlobals::mono_vertex_z = 0.;
+double dvcsGlobals::mono_local_x = 0.;
+double dvcsGlobals::mono_local_y = 0.;
+double dvcsGlobals::mono_nps_distance = 0.;
+std::string dvcsGlobals::simc_event_file;
+double dvcsGlobals::simc_nps_angle = 0.;
+double dvcsGlobals::simc_nps_distance = 0.;
+bool dvcsGlobals::simc_keep_target_material = false;
+
 //bool   dvcsGlobals::SM_field_flag = true;
 bool   dvcsGlobals::SM_field_flag = false;
 double dvcsGlobals::SM_field_str  = 1.;
@@ -89,6 +102,103 @@ double dvcsGlobals::SM_angle = 0.;
 
 int main(int argc,char** argv)
 {
+if (argc != 5 && argc != 8 && argc != 9 && argc != 11 && argc != 12) {
+  G4cerr << "Usage: " << argv[0]
+         << " <run> <macro> <target> <process>"
+         << " [--mono-electron <energy_GeV> <theta_deg> <vertex_z_cm>"
+         << " [<nps_local_x_mm> <nps_local_y_mm> [<nps_distance_m>]]]"
+         << "\n       " << argv[0]
+         << " <run> <macro> <target> <process>"
+         << " --simc-events <csv> <nps_angle_deg> <nps_distance_m>"
+         << "\n       " << argv[0]
+         << " <run> <macro> <target> <process>"
+         << " --simc-events-target-on <csv> <nps_angle_deg> <nps_distance_m>"
+         << "\n       " << argv[0]
+         << " <run> <macro> <target> <process>"
+         << " --simc-pi0-events <csv> <nps_angle_deg> <nps_distance_m>"
+         << "\n       " << argv[0]
+         << " <run> <macro> <target> <process>"
+         << " --simc-hadron-events <csv> <nps_angle_deg> <nps_distance_m>"
+         << "\n       " << argv[0]
+         << " <run> <macro> <target> <process>"
+         << " --phase-space-events <csv> <nps_angle_deg> <nps_distance_m>"
+         << "\n       " << argv[0]
+         << " <run> <macro> <target> <process>"
+         << " --beam-electron <total_energy_GeV> <start_z_cm> <nps_distance_m>"
+         << "\n       " << argv[0]
+         << " <run> <macro> <target> <process>"
+         << " --electronuclear-events <total_energy_GeV> <nps_distance_m>"
+         << G4endl;
+  return 2;
+}
+
+if (argc == 8 && G4String(argv[5]) == "--electronuclear-events") {
+  dvcsGlobals::primary_mode = 4;
+  dvcsGlobals::mono_energy = std::atof(argv[6]);
+  dvcsGlobals::mono_nps_distance = 100. * std::atof(argv[7]);
+  if (dvcsGlobals::mono_energy <= 0.510999e-3 ||
+      dvcsGlobals::mono_nps_distance <= 0.) {
+    G4cerr << "Electronuclear energy and NPS distance must be positive."
+           << G4endl;
+    return 2;
+  }
+} else if (argc == 9 && G4String(argv[5]) == "--beam-electron") {
+  dvcsGlobals::primary_mode = 3;
+  dvcsGlobals::mono_energy = std::atof(argv[6]);
+  dvcsGlobals::mono_vertex_z = std::atof(argv[7]);
+  dvcsGlobals::mono_nps_distance = 100. * std::atof(argv[8]);
+  if (dvcsGlobals::mono_energy <= 0.510999e-3 ||
+      dvcsGlobals::mono_nps_distance <= 0.) {
+    G4cerr << "Beam-electron energy and NPS distance must be positive."
+           << G4endl;
+    return 2;
+  }
+} else if (argc == 9 && (G4String(argv[5]) == "--simc-events" ||
+                  G4String(argv[5]) == "--simc-events-target-on" ||
+                  G4String(argv[5]) == "--simc-pi0-events" ||
+                  G4String(argv[5]) == "--simc-hadron-events" ||
+                  G4String(argv[5]) == "--phase-space-events")) {
+  dvcsGlobals::primary_mode = 2;
+  dvcsGlobals::simc_keep_target_material =
+      G4String(argv[5]) == "--simc-events-target-on" ||
+      G4String(argv[5]) == "--simc-pi0-events" ||
+      G4String(argv[5]) == "--simc-hadron-events";
+  dvcsGlobals::simc_event_file = argv[6];
+  dvcsGlobals::simc_nps_angle = std::atof(argv[7]) * CLHEP::deg;
+  dvcsGlobals::simc_nps_distance = 100. * std::atof(argv[8]);
+  if (dvcsGlobals::simc_event_file.empty() ||
+      dvcsGlobals::simc_nps_distance <= 0.) {
+    G4cerr << "SIMC event file must be nonempty and NPS distance positive."
+           << G4endl;
+    return 2;
+  }
+} else if (argc == 9 || argc == 11 || argc == 12) {
+  if (G4String(argv[5]) != "--mono-electron") {
+    G4cerr << "Unknown generator option: " << argv[5] << G4endl;
+    return 2;
+  }
+  dvcsGlobals::primary_mode = 1;
+  dvcsGlobals::mono_energy = std::atof(argv[6]);
+  dvcsGlobals::mono_angle = std::atof(argv[7]) * CLHEP::deg;
+  dvcsGlobals::mono_vertex_z = std::atof(argv[8]);
+  if (argc >= 11) {
+    dvcsGlobals::mono_local_x = std::atof(argv[9]);
+    dvcsGlobals::mono_local_y = std::atof(argv[10]);
+  }
+  if (argc == 12) {
+    dvcsGlobals::mono_nps_distance = 100. * std::atof(argv[11]);
+    if (dvcsGlobals::mono_nps_distance <= 0.) {
+      G4cerr << "Explicit NPS distance must be positive." << G4endl;
+      return 2;
+    }
+  }
+  if (dvcsGlobals::mono_energy <= 0.510999e-3) {
+    G4cerr << "Mono-electron total energy must exceed the electron rest mass."
+           << G4endl;
+    return 2;
+  }
+}
+
 // current date/time based on current system
 time_t now = time(0);
 
@@ -115,6 +225,22 @@ dvcsGlobals::HMS_momentum = HMSmomentum[0];//[GeV]
 dvcsGlobals::Calo_distance = Calo_distance[0];//[cm]
 dvcsGlobals::Calo_angle = Calo_angle[0];//[rad]  
 
+if (dvcsGlobals::primary_mode == 1 && dvcsGlobals::mono_nps_distance > 0.) {
+  dvcsGlobals::Calo_distance = dvcsGlobals::mono_nps_distance;
+  dvcsGlobals::Calo_angle = dvcsGlobals::mono_angle;
+}
+if (dvcsGlobals::primary_mode == 3 && dvcsGlobals::mono_nps_distance > 0.) {
+  // Beam mode preserves the authoritative run-database calorimeter angle.
+  dvcsGlobals::Calo_distance = dvcsGlobals::mono_nps_distance;
+}
+if (dvcsGlobals::primary_mode == 4 && dvcsGlobals::mono_nps_distance > 0.) {
+  dvcsGlobals::Calo_distance = dvcsGlobals::mono_nps_distance;
+}
+if (dvcsGlobals::primary_mode == 2) {
+  dvcsGlobals::Calo_distance = dvcsGlobals::simc_nps_distance;
+  dvcsGlobals::Calo_angle = dvcsGlobals::simc_nps_angle;
+}
+
 dvcsGlobals::target_type = atoi(argv[3]); //"0" : hydrogen, "1" : deuterium
 dvcsGlobals::target_gen_proc_type = atoi(argv[4]);//"0" : proton, "1" : neutron, "2" : deutron
 
@@ -131,6 +257,47 @@ else if ( target_gen_proc_type == 1 ) {cout<<"Process to be genarated is DVCS on
 else if ( target_gen_proc_type == 2 ) {cout<<"Process to be genarated is DVCS on deutron"<<endl;}
 
 dvcsGlobals::target_length = 10.; // [cm]
+
+if (dvcsGlobals::primary_mode == 1) {
+  G4cout << "Primary mode: mono electron" << G4endl
+         << "  total energy [GeV]: " << dvcsGlobals::mono_energy << G4endl
+         << "  Hall theta [deg]: " << dvcsGlobals::mono_angle / CLHEP::deg << G4endl
+         << "  vertex z [cm]: " << dvcsGlobals::mono_vertex_z << G4endl
+         << "  NPS local face x,y [mm]: " << dvcsGlobals::mono_local_x
+         << ", " << dvcsGlobals::mono_local_y << G4endl
+         << "  explicit NPS distance [m]: "
+         << dvcsGlobals::mono_nps_distance / 100. << G4endl;
+}
+if (dvcsGlobals::primary_mode == 3) {
+  G4cout << "Primary mode: beam electron through target" << G4endl
+         << "  total energy [GeV]: " << dvcsGlobals::mono_energy << G4endl
+         << "  start z [cm]: " << dvcsGlobals::mono_vertex_z << G4endl
+         << "  direction: +z" << G4endl
+         << "  target/cell material: ON" << G4endl
+         << "  explicit NPS distance [m]: "
+         << dvcsGlobals::mono_nps_distance / 100. << G4endl;
+}
+if (dvcsGlobals::primary_mode == 4) {
+  G4cout << "Primary mode: direct conditional electronuclear events" << G4endl
+         << "  total beam-electron energy [GeV]: "
+         << dvcsGlobals::mono_energy << G4endl
+         << "  target liquid path [cm]: 10.0" << G4endl
+         << "  NPS angle: run-database setting" << G4endl
+         << "  explicit NPS distance [m]: "
+         << dvcsGlobals::mono_nps_distance / 100. << G4endl;
+}
+if (dvcsGlobals::primary_mode == 2) {
+  G4cout << "Primary mode: SIMC event stream" << G4endl
+         << "  input CSV: " << dvcsGlobals::simc_event_file << G4endl
+         << "  NPS angle [deg]: "
+         << dvcsGlobals::simc_nps_angle / CLHEP::deg << G4endl
+         << "  NPS distance [m]: "
+         << dvcsGlobals::simc_nps_distance / 100. << G4endl
+         << "  target/cell material: "
+         << (dvcsGlobals::simc_keep_target_material
+                 ? "ON (diagnostic double-counting test)" : "vacuum")
+         << G4endl;
+}
 
 G4cout<<"calo angle!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! : "<<dvcsGlobals::Calo_angle*TMath::RadToDeg()<<G4endl;
 G4cout<<"calo dist!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! : "<<dvcsGlobals::Calo_distance<<G4endl;
@@ -163,16 +330,33 @@ HistoManager*  histo = new HistoManager();
 
 G4String fileNamee;
 G4cout<<"Name of the output file?"<<G4endl;
-G4cin>>fileNamee;
+if (!(G4cin>>fileNamee)) {
+  G4cerr << "Missing output filename on standard input." << G4endl;
+  return 3;
+}
 
 G4int index;
 long seed1, seed2;
 G4cout<<"index for Rancu seed table?"<<G4endl;
-G4cin>>index;
+if (!(G4cin>>index)) {
+  G4cerr << "Missing Ranecu seed-table index on standard input." << G4endl;
+  return 3;
+}
 G4cout<<"seed1?"<<G4endl;
-G4cin>>seed1;
+if (!(G4cin>>seed1)) {
+  G4cerr << "Missing first Ranecu seed on standard input." << G4endl;
+  return 3;
+}
 G4cout<<"seed2?"<<G4endl;
-G4cin>>seed2;
+if (!(G4cin>>seed2)) {
+  G4cerr << "Missing second Ranecu seed on standard input." << G4endl;
+  return 3;
+}
+if (index < 0 || index > 214 || seed1 <= 0 || seed2 <= 0) {
+  G4cerr << "Ranecu requires table index 0--214 and two positive seeds."
+         << G4endl;
+  return 3;
+}
 
 RunAction* run_action = new RunAction(histo, fileNamee, index, seed1, seed2);  
 runManager->SetUserAction(run_action);
@@ -194,7 +378,7 @@ runManager->SetUserAction(stack_action);
 
 G4UImanager* UImanager = G4UImanager::GetUIpointer();
   
-if (argc == 5)   // batch mode
+if (argc == 5 || argc == 8 || argc == 9 || argc == 11 || argc == 12)   // batch mode
 {
     G4String command = "/control/execute ";
     G4String fileName = argv[2];

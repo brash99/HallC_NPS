@@ -46,6 +46,12 @@ class B3StackingAction : public G4UserStackingAction
     virtual ~B3StackingAction();
      
     virtual G4ClassificationOfNewTrack ClassifyNewTrack(const G4Track*);        
+
+  private:
+    G4double fTargetSecondaryCut;
+    G4long fDiscardedTracks;
+    G4double fDiscardedKineticEnergy;
+    G4double fDiscardedWeightedKineticEnergy;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......

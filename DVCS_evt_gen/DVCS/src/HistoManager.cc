@@ -102,6 +102,15 @@ HistoManager::HistoManager()
   fX_BH(-999.),
   fRr_val(-999.),
   fGr_val(-999.),
+  fNPSEntryHit(0),
+  fNPSEntryID(-1),
+  fNPSEntryE(-999.),
+  fNPSEntryX(-999.),
+  fNPSEntryY(-999.),
+  fNPSEntryZ(-999.),
+  fNPSEntryPx(-999.),
+  fNPSEntryPy(-999.),
+  fNPSEntryPz(-999.),
 
   fEvtNb_(-1),
   fClust_X_(-999.),
@@ -220,6 +229,15 @@ void HistoManager::Book(G4String fileName)
   fNtuple_DVCS = new TTree("t_dvcs", "DVCS events generated and reconstructed");
   fNtuple_DVCS->Branch("evtNb", &fEvtNb, "Event Number/I");
   fNtuple_DVCS->Branch("edep", fEdep, "energy_deposition[1080]/D");
+  fNtuple_DVCS->Branch("nps_entry", &fNPSEntryHit, "nps_entry/I");
+  fNtuple_DVCS->Branch("nps_entry_id", &fNPSEntryID, "nps_entry_id/I");
+  fNtuple_DVCS->Branch("nps_entry_E", &fNPSEntryE, "nps_entry_E/D");
+  fNtuple_DVCS->Branch("nps_entry_x", &fNPSEntryX, "nps_entry_x/D");
+  fNtuple_DVCS->Branch("nps_entry_y", &fNPSEntryY, "nps_entry_y/D");
+  fNtuple_DVCS->Branch("nps_entry_z", &fNPSEntryZ, "nps_entry_z/D");
+  fNtuple_DVCS->Branch("nps_entry_px", &fNPSEntryPx, "nps_entry_px/D");
+  fNtuple_DVCS->Branch("nps_entry_py", &fNPSEntryPy, "nps_entry_py/D");
+  fNtuple_DVCS->Branch("nps_entry_pz", &fNPSEntryPz, "nps_entry_pz/D");
   // fNtuple_DVCS->Branch("clust_ene", &fClust_Ene, "Cluster Energy/D");
   // fNtuple_DVCS->Branch("clust_x", &fClust_X, "Cluster X/D");
   // fNtuple_DVCS->Branch("clust_y", &fClust_Y, "Cluster Y/D");
@@ -337,6 +355,26 @@ void HistoManager::SetEnergyandPID(G4int id, G4int PID, G4double edep, G4int sc,
 void HistoManager::SetEvtNb(G4int evtNb)
 {
   fEvtNb = evtNb;
+  fNPSEntryHit = 0;
+  fNPSEntryID = -1;
+  fNPSEntryE = -999.;
+  fNPSEntryX = fNPSEntryY = fNPSEntryZ = -999.;
+  fNPSEntryPx = fNPSEntryPy = fNPSEntryPz = -999.;
+}
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
+void HistoManager::SetNPSEntry(G4int id, G4double energy,
+                               G4ThreeVector position, G4ThreeVector momentum)
+{
+  if (fNPSEntryHit) return;
+  fNPSEntryHit = 1;
+  fNPSEntryID = id;
+  fNPSEntryE = energy;
+  fNPSEntryX = position.x();
+  fNPSEntryY = position.y();
+  fNPSEntryZ = position.z();
+  fNPSEntryPx = momentum.x();
+  fNPSEntryPy = momentum.y();
+  fNPSEntryPz = momentum.z();
 }
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 void HistoManager::SetCaloData(G4double clust_ene, G4double clust_x, G4double clust_y, G4int clust_size)

@@ -34,6 +34,7 @@
 
 #include "DetectorConstruction.hh"
 #include "DetectorMessenger.hh"
+#include "TargetForceCollisionOperator.hh"
 
 #include "G4Material.hh"
 #include "G4NistManager.hh"
@@ -157,9 +158,15 @@ DetectorConstruction::DetectorConstruction(G4double NPS_distance, G4double NPS_a
   fWindowThickness = 0.020*inch;
 
   // 0.132 mm is the average width of the entrance of all 3 cells
-  fTargetLength      = 100.*mm;//(129.759 - 29.759 + 50.)*mm; 
+  // The experimental target designation is the full on-axis liquid path.
+  // The inherited geometry appends a hemispherical end of radius 25 mm to
+  // this straight section.  In beam-electron mode shorten only the straight
+  // section so cylinder plus hemisphere remains exactly 100 mm; preserve the
+  // historical geometry for every existing simulation mode.
+  fTargetLength      = ((dvcsGlobals::primary_mode == 3 ||
+                         dvcsGlobals::primary_mode == 4) ? 75. : 100.)*mm;
   fTargetRadius      = 0.5*50.*mm;//20.179*mm;
-  fTargetCoverLength = (0.132 + 100.)*mm;//(5. + 129.759 - 29.759 + 50.)*mm; //(129.887 - 29.759 + 50.)*mm; 
+  fTargetCoverLength = fTargetLength + 0.132*mm;
   fTargetCoverRadius = (0.132 + 0.5*50.)*mm;//(20.179 + 5.)*mm;//20.32*mm;
   fTargetWindowThickness = 0.132*mm;//5.*mm;//0.128*mm;
 
@@ -325,6 +332,21 @@ void DetectorConstruction::DefineMaterials()
   //Target Cover Material Al
   fTargetCoverMater =new G4Material("TargetCover", 2.70*g/cm3, ncomponents=1);
   fTargetCoverMater -> AddElement(Al, 1);
+
+  // SIMC has already transported the electron through the target and cell.
+  // Keep the geometry present, but make those volumes vacuum in hybrid mode
+  // so material effects are not counted a second time.
+  if (dvcsGlobals::primary_mode == 2 &&
+      !dvcsGlobals::simc_keep_target_material) {
+    fTargetMater = fVacuumMater;
+    fTargetCoverMater = fVacuumMater;
+    G4cout << "SIMC hybrid mode: target liquid and cell set to vacuum" << G4endl;
+  }
+  if (dvcsGlobals::primary_mode == 2 &&
+      dvcsGlobals::simc_keep_target_material) {
+    G4cout << "WARNING: SIMC hybrid diagnostic retains target liquid and cell; "
+           << "upstream material is intentionally double counted" << G4endl;
+  }
 
   //Detector Material PbWO4
   G4Isotope *Pb204 = new G4Isotope("204Pb", 82, 204, 203.97*g/mole);
@@ -1779,6 +1801,11 @@ G4VPhysicalVolume* DetectorConstruction::ConstructVolumes()
 		    fCheckOverlaps);
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  const char* disableSweeperConstructionValue =
+      std::getenv("GEP_DISABLE_SWEEPER");
+  const G4bool disableSweeperConstruction = disableSweeperConstructionValue &&
+      G4String(disableSweeperConstructionValue) != "0";
+  if (!disableSweeperConstruction) {
   //subtracting beam-pipe volume from sweeper-magnet volume
   G4RotationMatrix *SM_BP_SubRot = new G4RotationMatrix;
   SM_BP_SubRot->rotateY(-fSweepingMagnet_theta); //Angle in radian
@@ -1815,7 +1842,10 @@ G4VPhysicalVolume* DetectorConstruction::ConstructVolumes()
 
   //Put sweeping magnet ONLY when magnetic field is ON. When OFF there is no physical sweeping magent.
   //20250415 by Hao: comment out the if argument to put sweeping magnet even when magnetic field is OFF to simulate the shadow of the magnet on the calorimeter
-  // if(field){
+  const char* disableSweeperValue = std::getenv("GEP_DISABLE_SWEEPER");
+  const G4bool disableSweeper = disableSweeperValue &&
+      G4String(disableSweeperValue) != "0";
+  if (!disableSweeper) {
     new G4PVPlacement(ySweepingMagnetRot,
 		      G4ThreeVector(fSweepingMagnet_pos*sin(-fSweepingMagnet_arm_theta), fSweepingMagnetSTPcenter_Y, fSweepingMagnet_pos*cos(-fSweepingMagnet_arm_theta)),
 		      fLogicMagnetic,
@@ -1824,7 +1854,9 @@ G4VPhysicalVolume* DetectorConstruction::ConstructVolumes()
 		      false,
 		      0,
 		      fCheckOverlaps);
-  // }
+  } else {
+    G4cout << "GEOMETRY_CONFIG inherited sweeper disabled" << G4endl;
+  }
 
   //
   //Part 1
@@ -2485,6 +2517,10 @@ G4VPhysicalVolume* DetectorConstruction::ConstructVolumes()
 		    0,
 		    fCheckOverlaps);
 
+  } else {
+    G4cout << "GEOMETRY_CONFIG inherited sweeper construction disabled"
+           << G4endl;
+  }
   //Coloring
   G4VisAttributes* CrystalVisAtt = new G4VisAttributes(G4Colour(1.,1.,0.));//yellow
   fLogicCrystal->SetVisAttributes(CrystalVisAtt);
@@ -2550,6 +2586,28 @@ G4VPhysicalVolume* DetectorConstruction::ConstructVolumes()
 
     void DetectorConstruction::ConstructSDandField()
     {
+      if (dvcsGlobals::primary_mode == 3) {
+        G4LogicalVolume* targetSphere =
+          G4LogicalVolumeStore::GetInstance()->GetVolume("TargetSphere_log");
+        if (!fLogicTarget || !targetSphere) {
+          G4ExceptionDescription message;
+          message << "Beam-mode target logical volumes were not constructed";
+          G4Exception("DetectorConstruction::ConstructSDandField",
+                      "GEPELECTRONUCLEAR003", FatalException, message);
+        }
+        TargetForceCollisionOperator* cylinderBias =
+          new TargetForceCollisionOperator("GEpTargetCylinderForceCollision");
+        cylinderBias->AddParticle("e-");
+        cylinderBias->AttachTo(fLogicTarget);
+        TargetForceCollisionOperator* sphereBias =
+          new TargetForceCollisionOperator("GEpTargetSphereForceCollision");
+        sphereBias->AddParticle("e-");
+        sphereBias->AttachTo(targetSphere);
+        G4cout << "BEAM_BIAS independent operators attached to Target_log and "
+               << "TargetSphere_log"
+               << G4endl;
+      }
+
       // sensitive detectors -----------------------------------------------------
       G4SDManager* SDman = G4SDManager::GetSDMpointer();
       G4String SDname;

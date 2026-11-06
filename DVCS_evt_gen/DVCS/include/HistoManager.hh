@@ -83,6 +83,7 @@ public:
   void SetKineRec(G4double, G4double, G4double, G4double);
   void SetKineGen(G4double, G4double, G4double, G4double);
   void SetWeights(G4double, G4double, G4double, G4double);
+  void SetNPSEntry(G4int, G4double, G4ThreeVector, G4ThreeVector);
   void SetRvalRec(G4double);
   void SetRvalGen(G4double);
 
@@ -161,6 +162,16 @@ private:
   G4double fX_BH;
   G4double fRr_val;
   G4double fGr_val;
+
+  G4int    fNPSEntryHit;
+  G4int    fNPSEntryID;
+  G4double fNPSEntryE;
+  G4double fNPSEntryX;
+  G4double fNPSEntryY;
+  G4double fNPSEntryZ;
+  G4double fNPSEntryPx;
+  G4double fNPSEntryPy;
+  G4double fNPSEntryPz;
 
   G4int     fEvtNb_;
   G4double  fClust_X_;

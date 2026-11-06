@@ -1,0 +1,23 @@
+{
+  "input": "run6887_100000_cut1.0.root",
+  "completed_incident_electrons": 100000,
+  "beam_total_energy_GeV": 8.456,
+  "production_cut_GeV": 1.0,
+  "nps_angle_deg": 16.57,
+  "nps_distance_m": 3.57,
+  "nps_width_cm": 61.5,
+  "nps_height_cm": 73.8,
+  "current_uA": 29.417,
+  "phase_space_rows": 103055,
+  "forward_plane_intersections": 103055,
+  "face_particle_hits": 0,
+  "face_event_hits": 0,
+  "face_particle_rate_Hz": 0.0,
+  "face_event_rate_Hz": 0.0,
+  "pdg_face_counts": {},
+  "coordinate_convention": {
+    "nps_x": "Hall horizontal scattering plane; positive toward larger polar angle",
+    "nps_y": "Hall vertical +y"
+  },
+  "important_limitation": "Geometric incident-energy projection; not calorimeter deposited energy or trigger response."
+}

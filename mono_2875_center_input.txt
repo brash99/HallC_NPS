@@ -1,0 +1,4 @@
+/work/hallc/gep/brash/gep4_nps_geant4/validation/mono_2875_centered_10.root
+17
+12345
+67890

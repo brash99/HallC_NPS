@@ -29,25 +29,68 @@
 /// \brief Implementation of the B3StackingAction class
 
 #include "B3StackingAction.hh"
+#include "dvcsGlobals.hh"
 
 #include "G4Track.hh"
 #include "G4NeutrinoE.hh"
+#include "G4SystemOfUnits.hh"
+#include "G4VPhysicalVolume.hh"
+
+#include <cerrno>
+#include <cstdlib>
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 B3StackingAction::B3StackingAction()
-{ }
+  : fTargetSecondaryCut(0.), fDiscardedTracks(0),
+    fDiscardedKineticEnergy(0.), fDiscardedWeightedKineticEnergy(0.)
+{
+  const char* value = std::getenv("GEP_TARGET_SECONDARY_CUT_GEV");
+  if (value && *value) {
+    char* end = 0;
+    errno = 0;
+    const G4double parsed = std::strtod(value, &end);
+    if (errno || end == value || *end != '\0' || parsed < 0.) {
+      G4ExceptionDescription message;
+      message << "Invalid GEP_TARGET_SECONDARY_CUT_GEV=" << value;
+      G4Exception("B3StackingAction::B3StackingAction",
+                  "GEPELECTRONUCLEAR004", FatalException, message);
+    }
+    fTargetSecondaryCut = parsed * CLHEP::GeV;
+  }
+  G4cout << "TARGET_SECONDARY_CUT_GEV="
+         << fTargetSecondaryCut/CLHEP::GeV << G4endl;
+}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 B3StackingAction::~B3StackingAction()
-{ }
+{
+  G4cout << "TARGET_SECONDARY_DISCARD count=" << fDiscardedTracks
+         << " kinetic_GeV=" << fDiscardedKineticEnergy/CLHEP::GeV
+         << " weighted_kinetic_GeV="
+         << fDiscardedWeightedKineticEnergy/CLHEP::GeV << G4endl;
+}
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 G4ClassificationOfNewTrack
 B3StackingAction::ClassifyNewTrack(const G4Track* track)
 {
+
+  if (dvcsGlobals::primary_mode != 4 && fTargetSecondaryCut > 0. &&
+      track->GetParentID() > 0 &&
+      track->GetKineticEnergy() < fTargetSecondaryCut) {
+    const G4VPhysicalVolume* volume = track->GetVolume();
+    const G4String name = volume ? volume->GetName() : "";
+    if (name == "Target_pos" || name == "TargetSphere_pos") {
+      ++fDiscardedTracks;
+      fDiscardedKineticEnergy += track->GetKineticEnergy();
+      fDiscardedWeightedKineticEnergy +=
+          track->GetWeight() * track->GetKineticEnergy();
+      return fKill;
+    }
+  }
 
   // //keep primary particle
   // if (track->GetParentID() == 0) return fUrgent;

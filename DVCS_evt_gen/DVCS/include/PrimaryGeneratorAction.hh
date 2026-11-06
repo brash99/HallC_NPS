@@ -48,9 +48,13 @@
 
 #include "TLorentzVector.h"
 
+#include <fstream>
+
 class EventAction;
 class G4Event;
 class G4ParticleGun;
+class G4ElectroVDNuclearModel;
+class G4ElectroNuclearCrossSection;
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
 
 class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
@@ -76,6 +80,20 @@ class PrimaryGeneratorAction : public G4VUserPrimaryGeneratorAction
   TLorentzVector* L_prot_final;
 
   G4int target_gen_proc_type;
+  std::ifstream fSimcInput;
+  long fSimcLineNumber;
+  bool fSimcPi0;
+  bool fSimcElectronPhoton;
+  bool fSimcHadron;
+  bool fGenericPhaseSpace;
+  G4ElectroVDNuclearModel* fElectronuclearModel;
+  G4ElectroNuclearCrossSection* fElectronuclearCrossSection;
+  G4double fElectronuclearSecondaryCut;
+  G4bool fElectronuclearGeneratorOnly;
+  G4long fElectronuclearEvents;
+  G4long fElectronuclearSecondaries;
+  G4long fElectronuclearDiscarded;
+  G4double fElectronuclearDiscardedKineticEnergy;
 };
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo......
